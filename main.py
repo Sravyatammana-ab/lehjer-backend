@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import pdfplumber
 import docx
-import pandas as pd
+import csv
+import openpyxl
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
@@ -22,7 +23,8 @@ try:
     from fastapi.responses import JSONResponse
     import pdfplumber
     import docx
-    import pandas as pd
+    import csv
+import openpyxl
     from openai import AsyncOpenAI
 except ImportError as e:
     raise ImportError(f"Missing dependency: {e}. Please run 'pip install -r requirements.txt'")
@@ -89,9 +91,18 @@ async def extract_text(file: UploadFile) -> str:
         elif ext in ['docx']:
             doc_file = docx.Document(tmp_path)
             text = '\n'.join([p.text for p in doc_file.paragraphs])
-        elif ext in ['csv', 'xls', 'xlsx']:
-            df = pd.read_csv(tmp_path) if ext == 'csv' else pd.read_excel(tmp_path)
-            text = df.to_string()
+        elif ext == 'csv':
+            with open(tmp_path, 'r', encoding='utf-8') as f:
+                csv_reader = csv.reader(f)
+                text = '\n'.join([','.join(row) for row in csv_reader])
+        elif ext in ['xls', 'xlsx']:
+            workbook = openpyxl.load_workbook(tmp_path)
+            text = ""
+            for sheet_name in workbook.sheetnames:
+                sheet = workbook[sheet_name]
+                text += f"Sheet: {sheet_name}\n"
+                for row in sheet.iter_rows(values_only=True):
+                    text += '\t'.join([str(cell) if cell is not None else '' for cell in row]) + '\n'
         elif ext == 'txt':
             with open(tmp_path, 'r', encoding='utf-8') as f:
                 text = f.read()

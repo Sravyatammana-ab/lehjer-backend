@@ -5,6 +5,9 @@ set -e
 echo "Python version:"
 python --version
 
+echo "Pip version:"
+pip --version
+
 echo "Upgrading pip..."
 pip install --upgrade pip
 
